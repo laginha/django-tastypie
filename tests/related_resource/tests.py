@@ -329,9 +329,6 @@ class NestedRelatedResourceTest(TestCase):
         request = MockRequest()
         request.GET = {'format': 'json'}
         request.method = 'PUT'
-        # Sending the URL will cause Tastypie to go into a downward spiral,
-        # since it's a child object of the (already-included) parent.
-        del person['company']['products'][0]['producer']
         request.raw_post_data = json.dumps(person)
         resp = pr.put_detail(request, pk=pk)
         self.assertEqual(resp.status_code, 204)
@@ -387,9 +384,6 @@ class NestedRelatedResourceTest(TestCase):
         request = MockRequest()
         request.GET = {'format': 'json'}
         request.method = 'PUT'
-        # Sending the URL will cause Tastypie to go into a downward spiral,
-        # since it's a child object of the (already-included) parent.
-        del person['dogs'][0]['owner']
         request.raw_post_data = json.dumps(person)
         resp = pr.put_detail(request, pk=pk)
         self.assertEqual(resp.status_code, 204)
@@ -448,10 +442,6 @@ class NestedRelatedResourceTest(TestCase):
         request = MockRequest()
         request.GET = {'format': 'json'}
         request.method = 'PUT'
-        # Sending the URL will cause Tastypie to go into a downward spiral,
-        # since it's a child object of the (already-included) parent.
-        del person['dogs'][0]['owner']
-        del person['dogs'][0]['bones'][0]['dog']
         request.raw_post_data = json.dumps(person)
         resp = pr.put_detail(request, pk=pk)
         self.assertEqual(resp.status_code, 204)

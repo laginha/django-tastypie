@@ -1297,6 +1297,11 @@ class ModelResourceTestCase(TestCase):
         note_1 = resource.get_via_uri('/api/v1/notes/1/', request=request)
         self.assertEqual(note_1.pk, 1)
 
+    def test_create_identifier(self):
+        resource = NoteResource()
+        new_note = Note.objects.get(pk=1)
+        self.assertEqual(resource.create_identifier(new_note), 'core.note.1')
+
     def test_determine_format(self):
         resource = NoteResource()
         request = HttpRequest()

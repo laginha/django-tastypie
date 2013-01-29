@@ -18,7 +18,7 @@ class Authorization(object):
         """
         Deprecated.
 
-        REMOVE BEFORE 1.0
+        FIXME: REMOVE BEFORE 1.0
         """
         raise TastypieError("Authorization classes no longer support `apply_limits`. Please update to using `read_list`.")
 

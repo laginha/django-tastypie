@@ -584,6 +584,9 @@ class Resource(object):
         """
         try:
             auth_result = self._meta.authorization.read_list(object_list, bundle)
+
+            if not auth_result:
+                raise Unauthorized("You are not allowed to access that resource.")
         except Unauthorized, e:
             self.unauthorized_result(e)
 
@@ -596,6 +599,9 @@ class Resource(object):
         """
         try:
             auth_result = self._meta.authorization.read_detail(object_list, bundle)
+
+            if not auth_result:
+                raise Unauthorized("You are not allowed to access that resource.")
         except Unauthorized, e:
             self.unauthorized_result(e)
 
@@ -608,6 +614,9 @@ class Resource(object):
         """
         try:
             auth_result = self._meta.authorization.create_list(object_list, bundle)
+
+            if not auth_result:
+                raise Unauthorized("You are not allowed to access that resource.")
         except Unauthorized, e:
             self.unauthorized_result(e)
 
@@ -620,6 +629,9 @@ class Resource(object):
         """
         try:
             auth_result = self._meta.authorization.create_detail(object_list, bundle)
+
+            if not auth_result:
+                raise Unauthorized("You are not allowed to access that resource.")
         except Unauthorized, e:
             self.unauthorized_result(e)
 
@@ -632,6 +644,9 @@ class Resource(object):
         """
         try:
             auth_result = self._meta.authorization.update_list(object_list, bundle)
+
+            if not auth_result:
+                raise Unauthorized("You are not allowed to access that resource.")
         except Unauthorized, e:
             self.unauthorized_result(e)
 
@@ -644,6 +659,9 @@ class Resource(object):
         """
         try:
             auth_result = self._meta.authorization.update_detail(object_list, bundle)
+
+            if not auth_result:
+                raise Unauthorized("You are not allowed to access that resource.")
         except Unauthorized, e:
             self.unauthorized_result(e)
 
@@ -656,6 +674,9 @@ class Resource(object):
         """
         try:
             auth_result = self._meta.authorization.delete_list(object_list, bundle)
+
+            if not auth_result:
+                raise Unauthorized("You are not allowed to access that resource.")
         except Unauthorized, e:
             self.unauthorized_result(e)
 
@@ -668,12 +689,15 @@ class Resource(object):
         """
         try:
             auth_result = self._meta.authorization.delete_detail(object_list, bundle)
+
+            if not auth_result:
+                raise Unauthorized("You are not allowed to access that resource.")
         except Unauthorized, e:
             self.unauthorized_result(e)
 
         return auth_result
 
-    def build_bundle(self, obj=None, data=None, request=None):
+    def build_bundle(self, obj=None, data=None, request=None, objects_saved=None):
         """
         Given either an object, a data dictionary or both, builds a ``Bundle``
         for use throughout the ``dehydrate/hydrate`` cycle.
@@ -685,7 +709,12 @@ class Resource(object):
         if obj is None:
             obj = self._meta.object_class()
 
-        return Bundle(obj=obj, data=data, request=request)
+        return Bundle(
+            obj=obj,
+            data=data,
+            request=request,
+            objects_saved=objects_saved
+        )
 
     def build_filters(self, filters=None):
         """
@@ -2126,6 +2155,9 @@ class ModelResource(Resource):
             if bundle.obj and self.get_bundle_detail_data(bundle):
                 bundle.obj.delete()
 
+    def create_identifier(self, obj):
+        return u"{0}.{1}.{2}".format(obj._meta.app_label, obj._meta.module_name, obj.pk)
+
     def save(self, bundle, skip_errors=False):
         self.is_valid(bundle)
 
@@ -2143,6 +2175,7 @@ class ModelResource(Resource):
 
         # Save the main object.
         bundle.obj.save()
+        bundle.objects_saved.add(self.create_identifier(bundle.obj))
 
         # Now pick up the M2M bits.
         m2m_bundle = self.hydrate_m2m(bundle)
@@ -2189,15 +2222,25 @@ class ModelResource(Resource):
                     setattr(related_obj, field_object.related_name, bundle.obj)
 
                 related_resource = field_object.get_related_resource(related_obj)
-                related_bundle = related_resource.build_bundle(
-                    obj=related_obj,
-                    data=bundle.data.get(field_name),
-                    request=bundle.request
-                )
 
-                # FIXME: To avoid excessive saves, we may need to pass along a
-                #        set of objects/pks seens so as not to resave.
-                related_resource.save(related_bundle)
+                # Before we build the bundle & try saving it, let's make sure we
+                # haven't already saved it.
+                obj_id = self.create_identifier(related_obj)
+
+                if obj_id in bundle.objects_saved:
+                    # It's already been saved. We're done here.
+                    continue
+
+                if bundle.data.get(field_name) and hasattr(bundle.data[field_name], 'keys'):
+                    # Only build & save if there's data, not just a URI.
+                    related_bundle = related_resource.build_bundle(
+                        obj=related_obj,
+                        data=bundle.data.get(field_name),
+                        request=bundle.request,
+                        objects_saved=bundle.objects_saved
+                    )
+                    related_resource.save(related_bundle)
+
                 setattr(bundle.obj, field_object.attribute, related_obj)
 
     def save_m2m(self, bundle):
@@ -2242,14 +2285,22 @@ class ModelResource(Resource):
 
             for related_bundle in bundle.data[field_name]:
                 related_resource = field_object.get_related_resource(bundle.obj)
+
+                # Before we build the bundle & try saving it, let's make sure we
+                # haven't already saved it.
+                obj_id = self.create_identifier(related_bundle.obj)
+
+                if obj_id in bundle.objects_saved:
+                    # It's already been saved. We're done here.
+                    continue
+
+                # Only build & save if there's data, not just a URI.
                 updated_related_bundle = related_resource.build_bundle(
                     obj=related_bundle.obj,
                     data=related_bundle.data,
-                    request=bundle.request
+                    request=bundle.request,
+                    objects_saved=bundle.objects_saved
                 )
-
-                # FIXME: To avoid excessive saves, we may need to pass along a
-                #        set of objects/pks seens so as not to resave.
                 related_resource.save(updated_related_bundle)
                 related_objs.append(updated_related_bundle.obj)
 
