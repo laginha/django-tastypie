@@ -1034,7 +1034,7 @@ class Resource(object):
         """
         Deprecated.
 
-        REMOVE BEFORE 1.0
+        FIXME: REMOVE BEFORE 1.0
         """
         return self._meta.authorization.apply_limits(request, object_list)
 
