@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from tastypie.authentication import BasicAuthentication
 from tastypie.authorization import Authorization
 from tastypie import fields
 from tastypie.resources import ModelResource
@@ -7,19 +8,51 @@ from ..models import AuthorProfile, Article
 
 
 class PerUserAuthorization(Authorization):
-    # FIXME: Implement this!
-    pass
+    def create_list(self, object_list, bundle):
+        return object_list
+
+    def create_detail(self, object_list, bundle):
+        return True
+
+    def update_list(self, object_list, bundle):
+        revised_list = []
+
+        for article in object_list:
+            for profile in article.authors.all():
+                if bundle.request.user.pk == profile.user.pk:
+                    revised_list.append(article)
+
+        return revised_list
+
+    def update_detail(self, object_list, bundle):
+        for profile in bundle.obj.authors.all():
+            if bundle.request.user.pk == profile.user.pk:
+                return True
+
+        return False
+
+    def delete_list(self, object_list, bundle):
+        # Disallow deletes completely.
+        return []
+
+    def delete_detail(self, object_list, bundle):
+        # Disallow deletes completely.
+        return False
 
 
 class UserResource(ModelResource):
     class Meta:
         queryset = User.objects.all()
+        authentication = BasicAuthentication()
+        authorization = Authorization()
         excludes = ['email', 'password', 'is_staff', 'is_superuser']
 
 
 class SiteResource(ModelResource):
     class Meta:
         queryset = Site.objects.all()
+        authentication = BasicAuthentication()
+        authorization = Authorization()
 
 
 class AuthorProfileResource(ModelResource):
@@ -28,6 +61,8 @@ class AuthorProfileResource(ModelResource):
 
     class Meta:
         queryset = AuthorProfile.objects.all()
+        authentication = BasicAuthentication()
+        authorization = Authorization()
 
 
 class ArticleResource(ModelResource):
@@ -35,4 +70,6 @@ class ArticleResource(ModelResource):
 
     class Meta:
         queryset = Article.objects.all()
+        authentication = BasicAuthentication()
+        authorization = PerUserAuthorization()
 

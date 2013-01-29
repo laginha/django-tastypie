@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.db import models
+from django.template.defaultfilters import slugify
+from tastypie.utils.timezone import now
 
 
 class AuthorProfile(models.Model):
@@ -12,16 +14,22 @@ class AuthorProfile(models.Model):
     sites = models.ManyToManyField(Site, related_name='author_profiles')
 
     def __unicode__(self):
-        return u"Profile: {0}".format(self.user.get_full_name())
+        return u"Profile: {0}".format(self.user.username)
 
 
 class Article(models.Model):
     # We'll also use the ``authors`` to control perms.
     authors = models.ManyToManyField(AuthorProfile, related_name='articles')
     title = models.CharField(max_length=255)
-    url = models.UrlField()
+    slug = models.SlugField(blank=True)
     content = models.TextField(blank=True, default='')
-    added_on = models.DateTimeField(default=datetime.datetime.now)
+    added_on = models.DateTimeField(default=now)
 
     def __unicode__(self):
-        return u"{0} - {1}".format(self.title, self.url)
+        return u"{0} - {1}".format(self.title, self.slug)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+
+        return super(Article, self).save(*args, **kwargs)
