@@ -21,8 +21,13 @@ class Api(object):
     this is done with version numbers (i.e. ``v1``, ``v2``, etc.) but can
     be named any string.
     """
-    def __init__(self, api_name="v1"):
-        self.api_name = api_name
+    def __init__(self, api_name=None):
+        if api_name==None: 
+            self.api_name = "v0"
+            self.has_api_name = False
+        else:
+            self.api_name = api_name
+            self.has_api_name = True
         self._registry = {}
         self._canonicals = {}
 
@@ -94,13 +99,18 @@ class Api(object):
         Provides URLconf details for the ``Api`` and all registered
         ``Resources`` beneath it.
         """
+        if self.has_api_name:
+            pattern = r"^(?P<api_name>%s)%s$" % (self.api_name, trailing_slash())
+        else:
+            pattern = r"^%s$" % trailing_slash()
         pattern_list = [
-            url(r"^(?P<api_name>%s)%s$" % (self.api_name, trailing_slash()), self.wrap_view('top_level'), name="api_%s_top_level" % self.api_name),
+            url(pattern, self.wrap_view('top_level'), name="api_%s_top_level" % self.api_name),
         ]
 
         for name in sorted(self._registry.keys()):
             self._registry[name].api_name = self.api_name
-            pattern_list.append((r"^(?P<api_name>%s)/" % self.api_name, include(self._registry[name].urls)))
+            pattern = r"^(?P<api_name>%s)/" %self.api_name if self.has_api_name else r"^/"
+            pattern_list.append( (pattern, include(self._registry[name].urls)) )
 
         urlpatterns = self.prepend_urls()
 
