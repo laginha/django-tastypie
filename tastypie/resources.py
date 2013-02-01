@@ -178,7 +178,7 @@ class Resource(object):
 
     def __init__(self, api_name=None):
         self.fields = deepcopy(self.base_fields)
-        self.parameters = self.Parameters() if self.Parameters else None
+        self.parameters = self.Parameters() if hasattr(self, 'Parameters') else None
 
         if not api_name is None:
             self._meta.api_name = api_name
