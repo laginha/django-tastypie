@@ -24,6 +24,7 @@ from tastypie.throttle import BaseThrottle
 from tastypie.utils import is_valid_jsonp_callback_value, dict_strip_unicode_keys, trailing_slash
 from tastypie.utils.mime import determine_format, build_content_type
 from tastypie.validation import Validation
+from tastypie.forms.resource_parameters import ResourceParameters
 try:
     set
 except NameError:
@@ -177,6 +178,7 @@ class Resource(object):
 
     def __init__(self, api_name=None):
         self.fields = deepcopy(self.base_fields)
+        self.parameters = self.Parameters() if self.Parameters else None
 
         if not api_name is None:
             self._meta.api_name = api_name
@@ -1877,7 +1879,7 @@ class ModelResource(Resource):
         used to narrow the query.
         """
         filters = {}
-
+                
         if hasattr(request, 'GET'):
             # Grab a mutable copy.
             filters = request.GET.copy()
@@ -1885,9 +1887,15 @@ class ModelResource(Resource):
         # Update with the provided kwargs.
         filters.update(kwargs)
         applicable_filters = self.build_filters(filters=filters)
-
+        
+        resource_params = ResourceParameters( kwargs )
+        if self.parameters:
+            for i in self.parameters.get( request ):
+                resource_params.update( i )
+        resource_params.update(applicable_filters)
+        
         try:
-            base_object_list = self.apply_filters(request, applicable_filters)
+            base_object_list = self.apply_filters(request, resource_params)
             return self.apply_authorization_limits(request, base_object_list)
         except ValueError:
             raise BadRequest("Invalid resource lookup data provided (mismatched type).")
