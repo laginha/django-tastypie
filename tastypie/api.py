@@ -102,14 +102,13 @@ class Api(object):
         Provides URLconf details for the ``Api`` and all registered
         ``Resources`` beneath it.
         """
-        if self.has_api_name:
-            pattern = r"^(?P<api_name>%s)$" % (self.api_name)
-        else:
-            pattern = r"^"
+        #if self.has_api_name:
+        #    pattern = r"^(?P<api_name>%s)$" % (self.api_name)
+        #else:
+        #    pattern = r"^"
         pattern_list = [
-            url(pattern, self.wrap_view('top_level'), name="api_%s_top_level" % self.api_name),
+           # url(pattern, self.wrap_view('top_level'), name="api_%s_top_level" % self.api_name),
         ]
-        
         for name in sorted(self._registry.keys()):
             self._registry[name].api_name = self.api_name
             pattern = r"^(?P<api_name>%s)/" %self.api_name if self.has_api_name else r"^"
