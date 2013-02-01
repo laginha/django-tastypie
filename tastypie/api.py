@@ -53,7 +53,10 @@ class Api(object):
             self._canonicals[resource_name] = resource
             # TODO: This is messy, but makes URI resolution on FK/M2M fields
             #       work consistently.
-            resource._meta.api_name = self.api_name
+            if self.has_api_name:
+                resource._meta.api_name = self.api_name
+            else:
+                resource._meta.api_name = None
             resource.__class__.Meta.api_name = self.api_name
 
     def unregister(self, resource_name):
@@ -100,18 +103,18 @@ class Api(object):
         ``Resources`` beneath it.
         """
         if self.has_api_name:
-            pattern = r"^(?P<api_name>%s)%s$" % (self.api_name, trailing_slash())
+            pattern = r"^(?P<api_name>%s)$" % (self.api_name)
         else:
-            pattern = r"^%s$" % trailing_slash()
+            pattern = r"^"
         pattern_list = [
             url(pattern, self.wrap_view('top_level'), name="api_%s_top_level" % self.api_name),
         ]
-
+        
         for name in sorted(self._registry.keys()):
             self._registry[name].api_name = self.api_name
-            pattern = r"^(?P<api_name>%s)/" %self.api_name if self.has_api_name else r"^/"
+            pattern = r"^(?P<api_name>%s)/" %self.api_name if self.has_api_name else r"^"
             pattern_list.append( (pattern, include(self._registry[name].urls)) )
-
+        
         urlpatterns = self.prepend_urls()
 
         if self.override_urls():
@@ -166,6 +169,9 @@ class Api(object):
 
         See ``NamespacedApi._build_reverse_url`` for an example.
         """
+        if not self.has_api_name:
+            kwargs.pop('api_name')
+            return reverse(name, args=args, kwargs=kwargs)
         return reverse(name, args=args, kwargs=kwargs)
 
 
