@@ -24,6 +24,7 @@ setup(
         'tastypie.contrib',
         'tastypie.contrib.gis',
         'tastypie.contrib.contenttypes',
+        'tastypie.forms',
     ],
     package_data={
         'tastypie': ['templates/tastypie/*'],
