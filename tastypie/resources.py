@@ -1883,7 +1883,7 @@ class ModelResource(Resource):
         """
         return self._meta.queryset._clone()
 
-    def obj_get_list(self, request=None, resource_parameters=None, **kwargs):
+    def obj_get_list(self, request=None, parameters=None, **kwargs):
         """
         A ORM-specific implementation of ``obj_get_list``.
 
@@ -1899,10 +1899,10 @@ class ModelResource(Resource):
         # Update with the provided kwargs.
         filters.update(kwargs)
         applicable_filters = self.build_filters(filters=filters)
-        resource_parameters.update(applicable_filters)
+        parameters.update(applicable_filters)
         
         try:
-            base_object_list = self.apply_filters(request, resource_parameters)
+            base_object_list = self.apply_filters(request, parameters)
             return self.apply_authorization_limits(request, base_object_list)
         except ValueError:
             raise BadRequest("Invalid resource lookup data provided (mismatched type).")
