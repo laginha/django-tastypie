@@ -984,7 +984,8 @@ class Resource(object):
         """
         cache_key = self.generate_cache_key('list', **kwargs)
         obj_list = self._meta.cache.get(cache_key)
-
+        kwargs["parameters"] = self.get_resource_parameters(request, **kwargs)
+                
         if obj_list is None:
             obj_list = self.obj_get_list(request=request, **kwargs)
             self._meta.cache.set(cache_key, obj_list)
@@ -1115,6 +1116,13 @@ class Resource(object):
 
     # Views.
 
+    def get_resource_parameters(self, request, **kwargs):
+        resource_params = ResourceParameters( kwargs )
+        if self.parameters:
+            for i in self.parameters.get( request ):
+                resource_params.update( i )
+        return resource_params
+
     def get_list(self, request, **kwargs):
         """
         Returns a serialized list of resources.
@@ -1126,7 +1134,11 @@ class Resource(object):
         """
         # TODO: Uncached for now. Invalidation that works for everyone may be
         #       impossible.
-        objects = self.obj_get_list(request=request, **self.remove_api_resource_names(kwargs))
+        
+        kwargs  = self.remove_api_resource_names(kwargs)
+        kwargs["parameters"] = self.get_resource_parameters(request, **kwargs)
+        
+        objects = self.obj_get_list(request=request, **kwargs)
         sorted_objects = self.apply_sorting(objects, options=request.GET)
 
         paginator = self._meta.paginator_class(request.GET, sorted_objects, resource_uri=self.get_resource_uri(), limit=self._meta.limit, max_limit=self._meta.max_limit, collection_name=self._meta.collection_name)
@@ -1871,7 +1883,7 @@ class ModelResource(Resource):
         """
         return self._meta.queryset._clone()
 
-    def obj_get_list(self, request=None, **kwargs):
+    def obj_get_list(self, request=None, resource_parameters=None, **kwargs):
         """
         A ORM-specific implementation of ``obj_get_list``.
 
@@ -1887,15 +1899,10 @@ class ModelResource(Resource):
         # Update with the provided kwargs.
         filters.update(kwargs)
         applicable_filters = self.build_filters(filters=filters)
-        
-        resource_params = ResourceParameters( kwargs )
-        if self.parameters:
-            for i in self.parameters.get( request ):
-                resource_params.update( i )
-        resource_params.update(applicable_filters)
+        resource_parameters.update(applicable_filters)
         
         try:
-            base_object_list = self.apply_filters(request, resource_params)
+            base_object_list = self.apply_filters(request, resource_parameters)
             return self.apply_authorization_limits(request, base_object_list)
         except ValueError:
             raise BadRequest("Invalid resource lookup data provided (mismatched type).")
