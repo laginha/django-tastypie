@@ -731,6 +731,8 @@ class Resource(object):
         Given a bundle with an object instance, extract the information from it
         to populate the resource.
         """
+        if hasattr(bundle, 'obj') and isinstance(bundle.obj, (list, dict)):
+            return bundle.obj
         # Dehydrate each field.
         for field_name, field_object in self.fields.items():
             # A touch leaky but it makes URI resolution work.
@@ -1138,6 +1140,10 @@ class Resource(object):
         kwargs  = self.remove_api_resource_names(kwargs)
         kwargs["parameters"] = self.get_resource_parameters(request, **kwargs)
         
+        if not kwargs["parameters"].is_valid():
+            errors = kwargs["parameters"].errors()
+            return self.error_response(errors, request)
+            
         objects = self.obj_get_list(request=request, **kwargs)
         sorted_objects = self.apply_sorting(objects, options=request.GET)
 

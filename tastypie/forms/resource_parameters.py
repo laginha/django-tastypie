@@ -9,7 +9,7 @@ class ResourceParameters(dict):
     Dictionary with given resource parameters values
     '''   
     def __init__(self, params={}):
-        self.__errors  = {}
+        self.__errors  = []#{}
         self.__path    = params
         self.validated = {}
         self.update( params )
@@ -20,7 +20,7 @@ class ResourceParameters(dict):
         '''
         for key,value in params.iteritems():
             if isinstance(value, Exception):
-                self.__errors[key] = unicode(value)
+                self.__errors.append( unicode(value) )
             elif isinstance(key, Parameter):
                 self[key.alias] = value
                 self.validated[key.name] = value if is_serializable(value) else unicode(value)

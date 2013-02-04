@@ -12,7 +12,7 @@ class RequiredParamMissing(Exception):
         return False
 
     def __str__(self):
-        return "Required parameter missing from request."
+        return "Required parameter '%s' missing from request." %self.param
  
       
 class InvalidParameterValue(Exception):
@@ -27,7 +27,8 @@ class InvalidParameterValue(Exception):
         return False
     
     def __str__(self):
-        return "Query value '%s' failed %s validation." %(self.value, self.param.__class__.__name__)
+        expected = self.param.__class__.__name__.replace('Param', '')
+        return "Query value '%s' failed %s validation." %(self.value, expected)
 
 
 class ConversionError(Exception):
@@ -42,7 +43,8 @@ class ConversionError(Exception):
         return False
 
     def __str__(self):
-        return "Query value '%s' for %s could not be converted properly." %(self.value, self.param.__class__.__name__)
+        expected = self.param.__class__.__name__.replace('Param', '')
+        return "Query value '%s' for '%s' parameter could not be converted properly. %s expected." %(self.value, self.param, expected)
 
 
 class AndParameterException(Exception):
