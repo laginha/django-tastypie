@@ -1890,6 +1890,9 @@ class ModelResource(Resource):
         Takes an optional ``request`` object, whose ``GET`` dictionary can be
         used to narrow the query.
         """
+        if hasattr(self, 'index'):
+            return self.index(request, parameters, **kwargs)
+            
         filters = {}
                 
         if hasattr(request, 'GET'):
@@ -1914,6 +1917,9 @@ class ModelResource(Resource):
         Takes optional ``kwargs``, which are used to narrow the query to find
         the instance.
         """
+        if hasattr(self, 'show'):
+            return self.show(request, **kwargs)
+            
         try:
             base_object_list = self.get_object_list(request).filter(**kwargs)
             object_list = self.apply_authorization_limits(request, base_object_list)
