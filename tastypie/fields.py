@@ -618,13 +618,14 @@ class ToOneField(RelatedField):
 
     def __init__(self, to, attribute, related_name=None, default=NOT_PROVIDED,
                  null=False, blank=False, readonly=False, full=False,
-                 unique=False, help_text=None):
+                 unique=False, help_text=None, fields=None):
         super(ToOneField, self).__init__(
             to, attribute, related_name=related_name, default=default,
             null=null, blank=blank, readonly=readonly, full=full,
             unique=unique, help_text=help_text
         )
         self.fk_resource = None
+        self.fields = fields
 
     def dehydrate(self, bundle):
         foreign_obj = None
@@ -650,7 +651,13 @@ class ToOneField(RelatedField):
 
         self.fk_resource = self.get_related_resource(foreign_obj)
         fk_bundle = Bundle(obj=foreign_obj, request=bundle.request)
-        return self.dehydrate_related(fk_bundle, self.fk_resource)
+        value = self.dehydrate_related(fk_bundle, self.fk_resource)
+        
+        if self.fields:
+            response = { i: getattr(foreign_obj, i) for i in self.fields if hasattr(foreign_obj, i)}
+            response['resource_uri'] = value
+            return response
+        return value
 
     def hydrate(self, bundle):
         value = super(ToOneField, self).hydrate(bundle)
