@@ -83,6 +83,8 @@ class ResourceOptions(object):
     queryset = None
     fields = []
     excludes = []
+    exclude_list_fields = []
+    exclude_detail_fields = []
     include_resource_uri = True
     include_absolute_url = False
     always_return_data = False
