@@ -732,7 +732,8 @@ class Resource(object):
         to populate the resource.
         """
         if hasattr(bundle, 'obj') and isinstance(bundle.obj, (list, dict)):
-            return bundle.obj
+            return bundle.obj 
+        
         # Dehydrate each field.
         for field_name, field_object in self.fields.items():
             # A touch leaky but it makes URI resolution work.
@@ -761,6 +762,14 @@ class Resource(object):
 
         Must return the modified bundle.
         """
+        if self.get_resource_uri(bundle) == bundle.request.path:
+            for i in self._meta.exclude_detail_fields:
+                if i in bundle.data:
+                    del bundle.data[i]
+        else:
+            for i in self._meta.exclude_list_fields:
+                if i in bundle.data:
+                    del bundle.data[i]
         return bundle
 
     def full_hydrate(self, bundle):
