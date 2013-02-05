@@ -8,6 +8,14 @@ from tastypie.bundle import Bundle
 from tastypie.exceptions import ApiFieldError, NotFound
 from tastypie.utils import dict_strip_unicode_keys, make_aware
 
+try:
+    from django.contrib.gis.db.models.fields import GeometryField
+    from django.contrib.gis.geos             import GEOSGeometry
+    is_geodj_project = True
+except ImportError:
+    import sys
+    sys.stdout.write("Warning: Could not find the GEOS library.\n")
+    is_geodj_project = False
 
 class NOT_PROVIDED:
     def __str__(self):
@@ -654,7 +662,11 @@ class ToOneField(RelatedField):
         value = self.dehydrate_related(fk_bundle, self.fk_resource)
         
         if self.fields:
-            response = { i: getattr(foreign_obj, i) for i in self.fields if hasattr(foreign_obj, i)}
+            response = {}
+            for i in self.fields:
+                if hasattr(foreign_obj, i):
+                    val = getattr(foreign_obj, i)
+                    response[i] = val.geojson if is_geodj_project and isinstance(val, GEOSGeometry) else val
             response['resource_uri'] = value
             return response
         return value
