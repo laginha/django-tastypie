@@ -1,7 +1,7 @@
 import datetime
 from dateutil.parser import parse
 from decimal import Decimal
-import re
+import re, simplejson
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.utils import datetime_safe, importlib
 from tastypie.bundle import Bundle
@@ -666,7 +666,10 @@ class ToOneField(RelatedField):
             for i in self.fields:
                 if hasattr(foreign_obj, i):
                     val = getattr(foreign_obj, i)
-                    response[i] = val.geojson if is_geodj_project and isinstance(val, GEOSGeometry) else val
+                    if is_geodj_project and isinstance(val, GEOSGeometry):
+                        response[i] = simplejson.loads(val.geojson)
+                    else:
+                        response[i] = val
             response['resource_uri'] = value
             return response
         return value
